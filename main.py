@@ -1,16 +1,74 @@
-# This is a sample Python script.
+import numpy as np
+import pandas as pd
+from sklearn.pipeline import Pipeline
+import xgboost as xgb
+from sklearn.model_selection import cross_val_score, StratifiedShuffleSplit, GridSearchCV
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+import transformer.models as mdl
+import transformer.d_manipulation as d_mnp
+import utils
 
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-
+pd.set_option('display.max_columns', 30)
+pd.set_option('display.width', 1000)
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    print_hi('PyCharm')
+    df = utils.get_df_data()
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    for classifier in [
+        ('xgb_model',
+         xgb.XGBClassifier(objective='binary:logistic', use_label_encoder=False, eval_metric='logloss')),
+        ('Knn_model', KNeighborsClassifier(n_neighbors=9)),
+        ('RandomForest_model', RandomForestClassifier(n_estimators=51)),
+        ('DecisionTree_model', DecisionTreeClassifier(max_depth=6, min_samples_split=20))
+    ]:
+        print('-------------------------', classifier[0], '-----------------------------------')
+        for cluster_mode in ['Hierarchical', 'Kmean']:
+            for occ_cluster in [3, 4]:
+                for other_cluster in [2, 3]:
+
+                    steps = [
+                        ('visits', d_mnp.ModifyVisitsToNumeric(mode='A',
+                                                               columns=['Bar', 'CoffeeHouse', 'CarryAway',
+                                                                        'RestaurantLessThan20', 'Restaurant20To50'])),
+                        ('age', d_mnp.ModifyAgeToNumeric(mode='A', columns=['age'])),
+                        ('time', d_mnp.ModifyHourToNumeric(mode='A', columns=['time'])),
+                        #  last one should be the model !
+                        # ('Model', mdl.LastTransformer())
+                        classifier]
+
+                    coupon_pipeline = Pipeline(steps)
+
+                X = df.drop(labels=['Y'], axis=1)
+                y = df.Y
+
+                # preprocess
+                t = d_mnp.ClusterCatAndSetDummies(mode=cluster_mode, columns=['occupation'], n_clusters=occ_cluster)
+                t.fit(X, y)
+                X = t.transform(X)
+
+                t = d_mnp.ClusterCatAndSetDummies(mode=cluster_mode, columns=['education', 'income'],
+                                                  n_clusters=other_cluster)
+                t.fit(X, y)
+                X = t.transform(X)
+
+                t = d_mnp.ModifyToDummies(mode='A',
+                                          columns=['destination', 'passanger', 'weather', 'coupon', 'maritalStatus'])
+                X = t.transform(X)
+
+                t = d_mnp.ModifyToBinary(mode='A', columns=['expiration', 'gender'])
+                X = t.transform(X)
+
+                # coupon_pipeline.fit(X, y)
+                #
+                # coupon_pipeline.predict(X)
+
+                my_cv = StratifiedShuffleSplit(n_splits=6, train_size=0.7, test_size=0.3)
+                scores = cross_val_score(coupon_pipeline, X, y, cv=my_cv, scoring='neg_log_loss')
+                print(f'{cluster_mode:20} {occ_cluster} {other_cluster}', 'Scores:', round(np.mean(scores), 4), scores)
+
+    # print(X)
+    # print(X.info())
