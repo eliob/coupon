@@ -6,6 +6,8 @@ from sklearn.model_selection import cross_val_score, StratifiedShuffleSplit, Gri
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.svm import SVC
+import sklearn
 
 import transformer.models as mdl
 import transformer.d_manipulation as d_mnp
@@ -17,10 +19,11 @@ pd.set_option('display.width', 1000)
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     df = utils.get_df_data()
+    # print(sorted(sklearn.metrics.SCORERS.keys()))
 
     for classifier in [
-        ('xgb_model',
-         xgb.XGBClassifier(objective='binary:logistic', use_label_encoder=False, eval_metric='logloss')),
+        ('SVM', SVC()),
+        ('xgb_model', xgb.XGBClassifier(objective='binary:logistic', use_label_encoder=False, eval_metric='logloss')),
         ('Knn_model', KNeighborsClassifier(n_neighbors=9)),
         ('RandomForest_model', RandomForestClassifier(n_estimators=51)),
         ('DecisionTree_model', DecisionTreeClassifier(max_depth=6, min_samples_split=20))
@@ -62,12 +65,9 @@ if __name__ == '__main__':
                 t = d_mnp.ModifyToBinary(mode='A', columns=['expiration', 'gender'])
                 X = t.transform(X)
 
-                # coupon_pipeline.fit(X, y)
-                #
-                # coupon_pipeline.predict(X)
-
                 my_cv = StratifiedShuffleSplit(n_splits=6, train_size=0.7, test_size=0.3)
-                scores = cross_val_score(coupon_pipeline, X, y, cv=my_cv, scoring='neg_log_loss')
+                # scoring: f1, neg_log_loss, error, recall
+                scores = cross_val_score(coupon_pipeline, X, y, cv=my_cv, scoring='roc_auc')
                 print(f'{cluster_mode:20} {occ_cluster} {other_cluster}', 'Scores:', round(np.mean(scores), 4), scores)
 
     # print(X)
