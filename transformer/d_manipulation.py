@@ -1,5 +1,6 @@
 import pandas as pd
 from sklearn.cluster import AgglomerativeClustering, KMeans
+from itertools import chain, combinations
 
 
 class ModifyVisitsToNumeric:
@@ -66,25 +67,27 @@ class ClusterCatAndSetDummies:
 class TargetEncoder:
     def __init__(self, columns=None):
         if columns is None:
-            columns = ['education', 'occupation', 'income']
+            columns = ['education', 'occupation', 'income', 'coupon']
         self.columns = columns
         self.labels_dict = dict.fromkeys(columns, {})
 
     def fit(self, X, y):
         data = pd.concat([X, y], axis=1)
+        for comb in combinations(self.columns, 2):
+            cluster_df = data.groupby([comb[0], comb[1]]).agg({'Y': 'mean'}).unstack()
+            cluster_df.columns = cluster_df.columns.map(lambda par: par[1])
+            self.labels_dict[comb[0] + '@' + comb[1]] = cluster_df
         for column in self.columns:
             column_df = data.groupby(column).agg({'Y': 'mean'})
-            cluster_df = data.groupby([column, 'coupon']).agg({'Y': 'mean'}).unstack()
-            cluster_df.columns = cluster_df.columns.map(lambda par: par[1])
             self.labels_dict[column] = column_df
-            self.labels_dict[column + '@coupon'] = cluster_df
         return self
 
     def transform(self, X):
+        for comb in combinations(self.columns, 2):
+            X[comb[0] + '@' + comb[1]] = X[comb[0]] + '@' + X[comb[1]]
+            X[comb[0] + '@' + comb[1]] = X[comb[0] + '@' + comb[1]].map(
+                lambda parm: self.labels_dict[comb[0] + '@' + comb[1]].loc[parm.split('@')[0], parm.split('@')[1]])
         for column in self.columns:
-            X[column + '@coupon'] = X[column] + '@' + X['coupon']
-            X[column + '@coupon'] = X[column + '@coupon'].map(
-                lambda parm: self.labels_dict[column + '@coupon'].loc[parm.split('@')[0], parm.split('@')[1]])
             X[column] = X[column].map(lambda parm: self.labels_dict[column].loc[parm, 'Y'])
         return X
 
