@@ -67,7 +67,6 @@ class TargetEncoder:
     def __init__(self, columns=None):
         if columns is None:
             columns = ['education', 'occupation', 'income']
-        self.mode = mode
         self.columns = columns
         self.labels_dict = dict.fromkeys(columns, {})
 
@@ -85,8 +84,8 @@ class TargetEncoder:
         for column in self.columns:
             X[column + '@coupon'] = X[column] + '@' + X['coupon']
             X[column + '@coupon'] = X[column + '@coupon'].map(
-                lambda parm: self.labels.dict[column + '@coupon'].loc[parm.split('@')[0], parm.split('@')[1]])
-            X[column] = X[column].map(lambda parm: self.labels.dict[column].loc[parm])
+                lambda parm: self.labels_dict[column + '@coupon'].loc[parm.split('@')[0], parm.split('@')[1]])
+            X[column] = X[column].map(lambda parm: self.labels_dict[column].loc[parm, 'Y'])
         return X
 
 
