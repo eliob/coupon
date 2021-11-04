@@ -63,6 +63,33 @@ class ClusterCatAndSetDummies:
         return X
 
 
+class TargetEncoder:
+    def __init__(self, columns=None):
+        if columns is None:
+            columns = ['education', 'occupation', 'income']
+        self.mode = mode
+        self.columns = columns
+        self.labels_dict = dict.fromkeys(columns, {})
+
+    def fit(self, X, y):
+        data = pd.concat([X, y], axis=1)
+        for column in self.columns:
+            column_df = data.groupby(column).agg({'Y': 'mean'})
+            cluster_df = data.groupby([column, 'coupon']).agg({'Y': 'mean'}).unstack()
+            cluster_df.columns = cluster_df.columns.map(lambda par: par[1])
+            self.labels_dict[column] = column_df
+            self.labels_dict[column + '@coupon'] = cluster_df
+        return self
+
+    def transform(self, X):
+        for column in self.columns:
+            X[column + '@coupon'] = X[column] + '@' + X['coupon']
+            X[column + '@coupon'] = X[column + '@coupon'].map(
+                lambda parm: self.labels.dict[column + '@coupon'].loc[parm.split('@')[0], parm.split('@')[1]])
+            X[column] = X[column].map(lambda parm: self.labels.dict[column].loc[parm])
+        return X
+
+
 class ModifyAgeToNumeric:
     def __init__(self, mode='A', columns=None):
         if columns is None:
@@ -97,7 +124,8 @@ class ModifyHourToNumeric:
         dic = {}
         if self.mode == 'A':
             for column in self.columns:
-                X[column] = X[column].map(lambda par: par.replace('AM', '') if 'AM' in par else int(par.replace('PM', '')) + 12)
+                X[column] = X[column].map(
+                    lambda par: par.replace('AM', '') if 'AM' in par else int(par.replace('PM', '')) + 12)
                 X[column] = X[column].astype('int')
         return X
 
