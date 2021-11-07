@@ -1,4 +1,7 @@
 import pandas as pd
+from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+from sklearn.metrics import roc_curve, roc_auc_score
 
 
 def get_df_data():
@@ -17,3 +20,15 @@ def get_df_data():
     df.replace({"coupon": {'Restaurant(<20)': 'Restaurant(-20)'}}, inplace=True)
     return df
 
+
+def report(clf, X, y):
+    acc = accuracy_score(y_true=y,
+                         y_pred=clf.predict(X))
+    auc = roc_auc_score(y, clf.predict_proba(X)[:, 1])
+    cm = pd.DataFrame(confusion_matrix(y_true=y,
+                                       y_pred=clf.predict(X)),
+                      index=clf.classes_,
+                      columns=clf.classes_)
+    rep = classification_report(y_true=y,
+                                y_pred=clf.predict(X))
+    return 'accuracy: {:.3f}\n\n{}\n\n{}\nauc: {}'.format(acc, cm, rep, auc)
