@@ -163,3 +163,4 @@ class ModifyToBinary:
             X = pd.get_dummies(X, columns=self.columns, drop_first=True)
         # print(X.info())
         return X
+

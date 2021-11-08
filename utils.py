@@ -2,6 +2,9 @@ import pandas as pd
 from sklearn.metrics import confusion_matrix, classification_report
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 from sklearn.metrics import roc_curve, roc_auc_score
+from sklearn.model_selection import train_test_split
+from sklearn import metrics
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 
 
 def get_df_data():
@@ -21,14 +24,48 @@ def get_df_data():
     return df
 
 
+def split_to_train_and_test(dataset, label_column, test_ratio, rand_state):
+    X = dataset.drop(label_column, axis='columns')
+    y = dataset[label_column]
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_ratio, random_state=rand_state)
+    return X_train, X_test, y_train, y_test
+
+
 def report(clf, X, y):
-    acc = accuracy_score(y_true=y,
-                         y_pred=clf.predict(X))
+    acc = accuracy_score(y_true=y, y_pred=clf.predict(X))
+    prec = precision_score(y_true=y, y_pred=clf.predict(X))
+    recall = recall_score(y_true=y, y_pred=clf.predict(X))
+    f1 = f1_score(y_true=y, y_pred=clf.predict(X))
     auc = roc_auc_score(y, clf.predict_proba(X)[:, 1])
-    cm = pd.DataFrame(confusion_matrix(y_true=y,
-                                       y_pred=clf.predict(X)),
-                      index=clf.classes_,
-                      columns=clf.classes_)
-    rep = classification_report(y_true=y,
-                                y_pred=clf.predict(X))
-    return 'accuracy: {:.3f}\n\n{}\n\n{}\nauc: {}'.format(acc, cm, rep, auc)
+
+    # cm = pd.DataFrame(confusion_matrix(y_true=y, y_pred=clf.predict(X)), index=clf.classes_, columns=clf.classes_)
+    # rep = classification_report(y_true=y, y_pred=clf.predict(X))
+
+    return {'Accuracy': acc, 'Prec.': prec, 'Recall': recall, 'F1': f1, 'AUC': auc}
+
+
+def calc_evaluation_val(eval_metric, y_test, y_predicted):
+    if eval_metric == 'accuracy':
+        return metrics.accuracy_score(y_true=y_test, y_pred=y_predicted)
+
+    if eval_metric == 'precision':
+        return metrics.precision_score(y_true=y_test, y_pred=y_predicted)
+
+    if eval_metric == 'recall':
+        return metrics.recall_score(y_true=y_test, y_pred=y_predicted)
+
+    if eval_metric == 'f1':
+        return metrics.f1_score(y_true=y_test, y_pred=y_predicted)
+
+    if eval_metric == 'confusion_matrix':
+        return metrics.confusion_matrix(y_true=y_test, y_pred=y_predicted)
+
+
+def my_pipeline(X, y, steps, mode='transform'):
+    for step in steps:
+        transformer = step[1]
+        if mode == 'fit_transform':
+            X = transformer.fit(X, y).transform(X)
+        else:
+            transformer.fit(X, y)
+    return X
