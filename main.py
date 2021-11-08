@@ -12,7 +12,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 import sklearn
 
-import transformer.models as mdl
 import transformer.d_manipulation as d_mnp
 import utils
 

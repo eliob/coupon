@@ -6,6 +6,8 @@ from sklearn.model_selection import train_test_split
 from sklearn import metrics
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 
+import matplotlib.pyplot as plt
+
 
 def get_df_data():
     df = pd.read_csv('./data/in-vehicle-coupon-recommendation.csv')
@@ -69,3 +71,20 @@ def my_pipeline(X, y, steps, mode='transform'):
         else:
             transformer.fit(X, y)
     return X
+
+
+def build_plot(coupon_clf, X_test, y_test, name):
+    scores = coupon_clf.predict_proba(X_test)[:, 1]
+    fpr, tpr, thresholds = roc_curve(y_test, scores, pos_label=1)
+    plot_auc = roc_auc_score(y_test, coupon_clf.predict_proba(X_test)[:, 1]) * 100
+    plt.plot(fpr, tpr, '-', marker=".", markersize=4, label=f'({plot_auc:2.3f}%) {name}')
+
+
+def show_plot():
+    plt.title('ROC')
+    plt.xlabel('FPR (False Positive Rate = 1-specificity)')
+    plt.ylabel('TPR (True Positive Rate = sensitivity)')
+    plt.xlim([0, 1])
+    plt.ylim([0, 1])
+    plt.legend(loc='lower right')
+    plt.show()
