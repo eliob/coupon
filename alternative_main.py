@@ -1,17 +1,19 @@
-import numpy as np
+
 import pandas as pd
 from sklearn.pipeline import Pipeline
-import xgboost as xgb
 from sklearn.model_selection import cross_val_score, StratifiedShuffleSplit, GridSearchCV
-import random
+
 import pickle
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neural_network import MLPClassifier
 from catboost import CatBoostClassifier
-from sklearn.model_selection import train_test_split
+import xgboost as xgb
 from sklearn.svm import SVC
-import sklearn
+
+from sklearn.model_selection import train_test_split
 
 import transformer.classification_models as mdl
 import transformer.d_manipulation as d_mnp
@@ -54,15 +56,24 @@ if __name__ == '__main__':
     compare_model_dict = {}
 
     for classifier in [
-        ('CatBoostAgg_model', CatBoostClassifier(iterations=1000, verbose=200, task_type='CPU')),
-        ('xgb_model', xgb.XGBClassifier(objective='binary:logistic', use_label_encoder=False, eval_metric='auc')),
+        ('CatBoost_model', CatBoostClassifier(iterations=1000, verbose=200, task_type='CPU',
+                                              eval_metric='AUC', random_state=42,
+                                              cat_features=['destination', 'occupation', 'education',
+                                                            'income', 'passanger', 'weather', 'coupon', 'maritalStatus',
+                                                            'expiration', 'gender', 'Bar', 'CoffeeHouse', 'CarryAway',
+                                                            'RestaurantLessThan20', 'Restaurant20To50', 'age', 'time'])),
+        ('CatBoostAgg_model', CatBoostClassifier(iterations=1000, verbose=200, task_type='CPU', eval_metric='AUC', random_state=42)),
+        ('xgb_model', xgb.XGBClassifier(objective='binary:logistic', use_label_encoder=False, eval_metric='auc', random_state=42)),
         ('RandomForest_model', RandomForestClassifier(n_estimators=best_num_estimators)),
-        ('DecisionTree_model',
-         DecisionTreeClassifier(max_depth=best_max_depth, min_samples_split=best_min_samples_split)),
-        ('Knn_model', KNeighborsClassifier(n_neighbors=best_K))
-        # ('SVM', SVC())
+        ('DecisionTree_model', DecisionTreeClassifier(max_depth=best_max_depth, min_samples_split=best_min_samples_split)),
+        ('Knn_model', KNeighborsClassifier(n_neighbors=best_K)),
+        ('NaiveBayes_model', GaussianNB()),
+        ('MLP_model', MLPClassifier(random_state=42, max_iter=1000)),
+        ('SVM_model', SVC(kernel='linear', probability=True))
     ]:
         print('-------------------------', classifier[0], '-----------------------------------')
+
+        if classifier[0] == 'CatBoost_model':
 
         coupon_clf = classifier[1].fit(X_train, y_train)
 
