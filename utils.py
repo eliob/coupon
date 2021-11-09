@@ -69,7 +69,7 @@ def my_pipeline(X, y, steps, mode='transform'):
         if mode == 'fit_transform':
             X = transformer.fit(X, y).transform(X)
         else:
-            transformer.fit(X, y)
+            X = transformer.transform(X)
     return X
 
 
