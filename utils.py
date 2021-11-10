@@ -5,24 +5,36 @@ from sklearn.metrics import roc_curve, roc_auc_score
 from sklearn.model_selection import train_test_split
 from sklearn import metrics
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
-
+import pandas_profiling
 import matplotlib.pyplot as plt
 
 
 def get_df_data():
     df = pd.read_csv('./data/in-vehicle-coupon-recommendation.csv')
+    # profile = df.profile_report(title="Coupon Profiling Report", correlations=None)
+    # profile.to_file("profile_row_data.html")
 
     # "car" has only 108 values
     df.drop(labels=['car'], inplace=True, axis=1)
-    df.dropna(inplace=True)
+    df = df.dropna().reset_index(drop=True)
 
     # "toCoupon_GEQ5min" is fixed to 1
     df.drop(labels=['toCoupon_GEQ5min'], inplace=True, axis=1)
 
+    # drop duplicates
+    df.drop_duplicates(inplace=True, ignore_index=True)
+
+    # profile = df.profile_report(title="Coupon Profiling Report")
+    # profile.to_file("profile_row_data2.html")
+
     # "direction_opp" and "direction_same" are opposites
-    df.drop(labels=['direction_opp'], inplace=True, axis=1)
+    # "temperature" and "weather" have high correlations
+    df.drop(labels=['destination', 'direction_opp', 'weather'], inplace=True, axis=1)
 
     df.replace({"coupon": {'Restaurant(<20)': 'Restaurant(-20)'}}, inplace=True)
+
+    # profile = df.profile_report(title="Coupon Profiling Report")
+    # profile.to_file("profile_data_eng_data.html")
     return df
 
 

@@ -17,6 +17,9 @@ from sklearn.model_selection import train_test_split
 import transformer.classification_models as mdl
 import transformer.d_manipulation as d_mnp
 import utils
+import matplotlib
+
+matplotlib.use('TkAgg')
 
 pd.set_option('display.max_columns', 30)
 pd.set_option('display.width', 1000)
@@ -28,7 +31,7 @@ if __name__ == '__main__':
 
     steps = [('target_encoder', d_mnp.TargetEncoder(columns=['education', 'occupation', 'income', 'coupon'])),
              ('modify_to_dummies',
-              d_mnp.ModifyToDummies(mode='A', columns=['destination', 'passanger', 'weather', 'maritalStatus'])),
+              d_mnp.ModifyToDummies(mode='A', columns=['passanger', 'maritalStatus'])),
              ('modify_to_binary', d_mnp.ModifyToBinary(mode='A', columns=['expiration', 'gender'])),
              ('modify_visits', d_mnp.ModifyVisitsToNumeric(mode='A', columns=['Bar', 'CoffeeHouse', 'CarryAway',
                                                                               'RestaurantLessThan20',
@@ -37,6 +40,8 @@ if __name__ == '__main__':
              ('modify_time', d_mnp.ModifyHourToNumeric(mode='A', columns=['time']))]
 
     X = utils.my_pipeline(X, y, steps, mode='fit_transform')
+    profile = pd.concat([X, y], axis=1).profile_report(title="Coupon Profiling Report")
+    profile.to_file("profile_feature_eng.html")
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
@@ -65,13 +70,11 @@ if __name__ == '__main__':
         ('Knn_model', KNeighborsClassifier(n_neighbors=best_K)),
         ('NaiveBayes_model', GaussianNB()),
         ('MLP_model', MLPClassifier(random_state=42, max_iter=1000)),
-        ('SVM_model', SVC(kernel='linear', probability=True)),
+        # ('SVM_model', SVC(kernel='linear', probability=True)),
         ('CatBoost_model', CatBoostClassifier(iterations=1000, verbose=200, task_type='CPU',
                                               eval_metric='AUC', random_state=42,
-                                              cat_features=['destination', 'occupation', 'education',
-                                                            'income', 'passanger', 'weather', 'coupon',
-                                                            'maritalStatus',
-                                                            'expiration', 'gender'])),
+                                              cat_features=['occupation', 'education', 'income', 'passanger', 'coupon',
+                                                            'maritalStatus', 'expiration', 'gender'])),
     ]:
         print('-------------------------', classifier[0], '-----------------------------------')
 
@@ -88,6 +91,8 @@ if __name__ == '__main__':
                 ('modify_time', d_mnp.ModifyHourToNumeric(mode='A', columns=['time']))]
             X_train = utils.my_pipeline(X_train, y_train, steps_cat, mode='fit_transform')
             X_test = utils.my_pipeline(X_test, y_test, steps_cat, mode='transform')
+            # profile = pd.concat([X_train, y_train], axis=1).profile_report(title="Coupon Profiling Report")
+            # profile.to_file("profile_catboost.html")
 
         coupon_clf = classifier[1].fit(X_train, y_train)
 
