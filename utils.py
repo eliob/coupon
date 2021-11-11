@@ -21,9 +21,6 @@ def get_df_data():
     # "toCoupon_GEQ5min" is fixed to 1
     df.drop(labels=['toCoupon_GEQ5min'], inplace=True, axis=1)
 
-    # drop duplicates
-    df.drop_duplicates(inplace=True, ignore_index=True)
-
     # profile = df.profile_report(title="Coupon Profiling Report")
     # profile.to_file("profile_row_data2.html")
 
@@ -32,6 +29,9 @@ def get_df_data():
     df.drop(labels=['destination', 'direction_opp', 'weather'], inplace=True, axis=1)
 
     df.replace({"coupon": {'Restaurant(<20)': 'Restaurant(-20)'}}, inplace=True)
+
+    # drop duplicates
+    df.drop_duplicates(inplace=True, ignore_index=True)
 
     # profile = df.profile_report(title="Coupon Profiling Report")
     # profile.to_file("profile_data_eng_data.html")
