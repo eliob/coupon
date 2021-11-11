@@ -47,16 +47,20 @@ if __name__ == '__main__':
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
-    # HyperParameter Tuning
-    best_K, best_f1_val = mdl.find_best_k_for_KNN(X_train, y_train)
-    print(f'The best k is: {best_K}\nThe best f1 score is: {best_f1_val}')
+    # # HyperParameter Tuning
+    # best_K, best_f1_val = mdl.find_best_k_for_KNN(X_train, y_train)
+    # print(f'The best k is: {best_K}\nThe best f1 score is: {best_f1_val}')
+    #
+    # best_max_depth, best_min_samples_split, best_f1_val = mdl.find_best_decision_tree_params(X_train, y_train)
+    # print(
+    #     f'The max depth is: {best_max_depth}\nThe best min sample is: {best_min_samples_split}\nThe best f1 score is: {best_f1_val}')
 
-    best_max_depth, best_min_samples_split, best_f1_val = mdl.find_best_decision_tree_params(X_train, y_train)
-    print(
-        f'The max depth is: {best_max_depth}\nThe best min sample is: {best_min_samples_split}\nThe best f1 score is: {best_f1_val}')
-
-    best_num_estimators, best_f1_val = mdl.find_best_random_forest_num_estimators(X_train, y_train)
-    print(f'The num estimator is: {best_num_estimators}\nThe best f1 score is: {best_f1_val}')
+    best_num_estimators, best_max_depth, best_min_samples_split, best_f1_val = \
+        mdl.find_best_random_forest_num_estimators(X_train, y_train)
+    print(f'The num estimator is: {best_num_estimators}',
+          f'\nThe max depth is: {best_max_depth}',
+          f'\nThe best min sample is: {best_min_samples_split}',
+          f'\nThe best f1 score is: {best_f1_val}')
 
     # Run different classification models for comparison
     compare_model_dict = {}
@@ -66,10 +70,11 @@ if __name__ == '__main__':
          CatBoostClassifier(iterations=1000, verbose=200, task_type='CPU', eval_metric='AUC', random_state=42)),
         ('xgb_model',
          xgb.XGBClassifier(objective='binary:logistic', use_label_encoder=False, eval_metric='auc', random_state=42)),
-        ('RandomForest_model', RandomForestClassifier(n_estimators=best_num_estimators)),
-        ('DecisionTree_model',
-         DecisionTreeClassifier(max_depth=best_max_depth, min_samples_split=best_min_samples_split)),
-        ('Knn_model', KNeighborsClassifier(n_neighbors=best_K)),
+        ('RandomForest_model', RandomForestClassifier(n_estimators=best_num_estimators, max_depth=best_max_depth,
+                                                      min_samples_split=best_min_samples_split)),
+        # ('DecisionTree_model',
+        #  DecisionTreeClassifier(max_depth=best_max_depth, min_samples_split=best_min_samples_split)),
+        # ('Knn_model', KNeighborsClassifier(n_neighbors=best_K)),
         ('NaiveBayes_model', GaussianNB()),
         ('MLP_model', MLPClassifier(random_state=42, max_iter=1000)),
         # ('SVM_model', SVC(kernel='linear', probability=True)),
