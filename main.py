@@ -26,18 +26,22 @@ pd.set_option('display.width', 1000)
 
 if __name__ == '__main__':
     df = utils.get_df_data()
+    df['temperature'] = df['temperature'].astype('str')
     X = df.drop(labels=['Y'], axis=1)
     y = df.Y
 
     steps = [('target_encoder', d_mnp.TargetEncoder(columns=['education', 'occupation', 'income', 'coupon'])),
+             ('target_encoder', d_mnp.TargetEncoder(
+                 columns=['Bar', 'CoffeeHouse', 'CarryAway', 'RestaurantLessThan20', 'Restaurant20To50'])),
+             ('target_encoder', d_mnp.TargetEncoder(columns=['age', 'time', 'temperature'])),
              ('modify_to_dummies',
               d_mnp.ModifyToDummies(mode='A', columns=['passanger', 'maritalStatus'])),
-             ('modify_to_binary', d_mnp.ModifyToBinary(mode='A', columns=['expiration', 'gender'])),
-             ('modify_visits', d_mnp.ModifyVisitsToNumeric(mode='A', columns=['Bar', 'CoffeeHouse', 'CarryAway',
-                                                                              'RestaurantLessThan20',
-                                                                              'Restaurant20To50'])),
-             ('modify_age', d_mnp.ModifyAgeToNumeric(mode='A', columns=['age'])),
-             ('modify_time', d_mnp.ModifyHourToNumeric(mode='A', columns=['time']))]
+             ('modify_to_binary', d_mnp.ModifyToBinary(mode='A', columns=['expiration', 'gender']))]
+    # ('modify_visits', d_mnp.ModifyVisitsToNumeric(mode='A', columns=['Bar', 'CoffeeHouse', 'CarryAway',
+    #                                                                  'RestaurantLessThan20',
+    #                                                                  'Restaurant20To50'])),
+    # ('modify_age', d_mnp.ModifyAgeToNumeric(mode='A', columns=['age'])),
+    # ('modify_time', d_mnp.ModifyHourToNumeric(mode='A', columns=['time']))]
 
     X = utils.my_pipeline(X, y, steps, mode='fit_transform')
     # profile = pd.concat([X, y], axis=1).profile_report(title="Coupon Profiling Report")
@@ -48,8 +52,8 @@ if __name__ == '__main__':
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
     # # HyperParameter Tuning
-    # best_K, best_f1_val = mdl.find_best_k_for_KNN(X_train, y_train)
-    # print(f'The best k is: {best_K}\nThe best f1 score is: {best_f1_val}')
+    best_K, best_f1_val = mdl.find_best_k_for_KNN(X_train, y_train)
+    print(f'The best k is: {best_K}\nThe best f1 score is: {best_f1_val}')
     #
     # best_max_depth, best_min_samples_split, best_f1_val = mdl.find_best_decision_tree_params(X_train, y_train)
     # print(
@@ -74,7 +78,7 @@ if __name__ == '__main__':
                                                       min_samples_split=best_min_samples_split)),
         # ('DecisionTree_model',
         #  DecisionTreeClassifier(max_depth=best_max_depth, min_samples_split=best_min_samples_split)),
-        # ('Knn_model', KNeighborsClassifier(n_neighbors=best_K)),
+        ('Knn_model', KNeighborsClassifier(n_neighbors=best_K)),
         ('NaiveBayes_model', GaussianNB()),
         ('MLP_model', MLPClassifier(random_state=42, max_iter=1000)),
         # ('SVM_model', SVC(kernel='linear', probability=True)),

@@ -34,16 +34,16 @@ def get_classifier_obj(classifier_name, params):
     if classifier_name == 'svm':
         return SVC()
 
-#
-# def find_best_k_for_KNN(X_train, y_train):
-#     parameters = {'n_neighbors': [3, 7, 9, 11, 25]}
-#     knn = KNeighborsClassifier()
-#     clf = GridSearchCV(knn, parameters,scoring=make_scorer(metrics.f1_score, greater_is_better=True))
-#     clf.fit(X_train, y_train)
-#     best_K = clf.best_params_['n_neighbors']
-#     best_f1_val = clf.best_score_
-#     return best_K, best_f1_val
-#
+
+def find_best_k_for_KNN(X_train, y_train):
+    parameters = {'n_neighbors': [11, 23, 25, 27, 51, 101]}
+    knn = KNeighborsClassifier()
+    clf = GridSearchCV(knn, parameters,scoring=make_scorer(metrics.f1_score, greater_is_better=True))
+    clf.fit(X_train, y_train)
+    best_K = clf.best_params_['n_neighbors']
+    best_f1_val = clf.best_score_
+    return best_K, best_f1_val
+
 #
 # def find_best_decision_tree_params(X_train, y_train):
 #     parameters = {'max_depth': [2, 4, 6, 8, 10], "min_samples_split": [5, 10, 20, 40, 80]}
@@ -62,7 +62,7 @@ def find_best_random_forest_num_estimators(X_train, y_train):
                   "min_samples_split": [5, 10, 20, 40, 80]
                   }
     rf = RandomForestClassifier()
-    clf = GridSearchCV(rf, parameters, scoring=make_scorer(metrics.f1_score, greater_is_better=True))
+    clf = GridSearchCV(rf, parameters, verbose=100, scoring=make_scorer(metrics.f1_score, greater_is_better=True))
     clf.fit(X_train, y_train)
     best_num_estimators = clf.best_params_['n_estimators']
     best_max_depth = clf.best_params_['max_depth']
