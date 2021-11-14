@@ -26,41 +26,46 @@ pd.set_option('display.width', 1000)
 
 if __name__ == '__main__':
     df = utils.get_df_data()
-    df['temperature'] = df['temperature'].astype('str')
-    X = df.drop(labels=['Y'], axis=1)
-    y = df.Y
+    # df['temperature'] = df['temperature'].astype('str')
+    X = df.drop(labels=['Y'], axis=1).copy()
+    y = df.Y.copy()
 
-    steps = [('target_encoder', d_mnp.TargetEncoder(columns=['education', 'occupation', 'income', 'coupon'])),
-             ('target_encoder', d_mnp.TargetEncoder(
-                 columns=['Bar', 'CoffeeHouse', 'CarryAway', 'RestaurantLessThan20', 'Restaurant20To50'])),
-             ('target_encoder', d_mnp.TargetEncoder(columns=['age', 'time', 'temperature'])),
-             ('modify_to_dummies',
-              d_mnp.ModifyToDummies(mode='A', columns=['passanger', 'maritalStatus'])),
-             ('modify_to_binary', d_mnp.ModifyToBinary(mode='A', columns=['expiration', 'gender']))]
-    # ('modify_visits', d_mnp.ModifyVisitsToNumeric(mode='A', columns=['Bar', 'CoffeeHouse', 'CarryAway',
-    #                                                                  'RestaurantLessThan20',
-    #                                                                  'Restaurant20To50'])),
-    # ('modify_age', d_mnp.ModifyAgeToNumeric(mode='A', columns=['age'])),
-    # ('modify_time', d_mnp.ModifyHourToNumeric(mode='A', columns=['time']))]
+    steps_KNN = [('target_encoder', d_mnp.TargetEncoder(mode='All'))]
+    steps_other = [('target_encoder', d_mnp.TargetEncoder(mode='combination')),
+                   ('modify_to_dummies', d_mnp.ModifyToDummies(mode='A', columns=['passenger', 'maritalStatus'])),
+                   ('modify_to_binary', d_mnp.ModifyToBinary(mode='A', columns=['expiration', 'gender'])),
+                   ('modify_visits', d_mnp.ModifyVisitsToNumeric(mode='A',
+                                                                 columns=['Bar', 'CoffeeHouse', 'CarryAway',
+                                                                          'RestaurantLessThan20', 'Restaurant20To50'])),
+                   ('modify_age', d_mnp.ModifyAgeToNumeric(mode='A', columns=['age'])),
+                   ('modify_time', d_mnp.ModifyHourToNumeric(mode='A', columns=['time']))]
 
-    X = utils.my_pipeline(X, y, steps, mode='fit_transform')
+    X_KNN = utils.my_pipeline(X, y, steps_KNN, mode='fit_transform')
+
+    # reset X
+    # X = df.drop(labels=['Y'], axis=1).copy()
+    # y = df.Y.copy()
+    X_other = utils.my_pipeline(X, y, steps_other, mode='fit_transform')
+
     # profile = pd.concat([X, y], axis=1).profile_report(title="Coupon Profiling Report")
     # profile.to_file("profile_feature_eng.html")
 
-    # X.drop(labels=['coupon', 'passanger_Alone'], inplace=True, axis=1)
+    # X.drop(labels=['coupon', 'passenger_Alone'], inplace=True, axis=1)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_KNN_train, X_KNN_test, y_KNN_train, y_KNN_test = train_test_split(X_KNN, y, test_size=0.3, random_state=42)
+    X_other_train, X_other_test, y_other_train, y_other_test = train_test_split(X_other, y, test_size=0.3,
+                                                                                random_state=42)
 
     # # HyperParameter Tuning
-    best_K, best_f1_val = mdl.find_best_k_for_KNN(X_train, y_train)
+    best_K, best_f1_val = mdl.find_best_k_for_KNN(X_KNN_train, y_KNN_train)
     print(f'The best k is: {best_K}\nThe best f1 score is: {best_f1_val}')
     #
-    # best_max_depth, best_min_samples_split, best_f1_val = mdl.find_best_decision_tree_params(X_train, y_train)
-    # print(
-    #     f'The max depth is: {best_max_depth}\nThe best min sample is: {best_min_samples_split}\nThe best f1 score is: {best_f1_val}')
+    # best_max_depth, best_min_samples_split, best_f1_val = mdl.find_best_decision_tree_params(X_train,
+    # y_train) print(f'The max depth is: {best_max_depth}\nThe best min sample is: {best_min_samples_split}\nThe best
+    # f1 score is: {best_f1_val}')
 
     best_num_estimators, best_max_depth, best_min_samples_split, best_f1_val = \
-        mdl.find_best_random_forest_num_estimators(X_train, y_train)
+        mdl.find_best_random_forest_num_estimators(X_other_train, y_other_train)
     print(f'The num estimator is: {best_num_estimators}',
           f'\nThe max depth is: {best_max_depth}',
           f'\nThe best min sample is: {best_min_samples_split}',
@@ -84,14 +89,14 @@ if __name__ == '__main__':
         # ('SVM_model', SVC(kernel='linear', probability=True)),
         ('CatBoost_model', CatBoostClassifier(iterations=1000, verbose=200, task_type='CPU',
                                               eval_metric='AUC', random_state=42,
-                                              cat_features=['occupation', 'education', 'income', 'passanger', 'coupon',
+                                              cat_features=['occupation', 'education', 'income', 'passenger', 'coupon',
                                                             'maritalStatus', 'expiration', 'gender'])),
     ]:
         print('-------------------------', classifier[0], '-----------------------------------')
 
         if classifier[0] == 'CatBoost_model':
-            X = df.drop(labels=['Y'], axis=1)
-            y = df.Y
+            X = df.drop(labels=['Y'], axis=1).copy()
+            y = df.Y.copy()
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
             steps_cat = [
@@ -100,15 +105,24 @@ if __name__ == '__main__':
                                                                                  'Restaurant20To50'])),
                 ('modify_age', d_mnp.ModifyAgeToNumeric(mode='A', columns=['age'])),
                 ('modify_time', d_mnp.ModifyHourToNumeric(mode='A', columns=['time']))]
+
             X_train = utils.my_pipeline(X_train, y_train, steps_cat, mode='fit_transform')
             X_test = utils.my_pipeline(X_test, y_test, steps_cat, mode='transform')
             # profile = pd.concat([X_train, y_train], axis=1).profile_report(title="Coupon Profiling Report")
             # profile.to_file("profile_catboost.html")
+            coupon_clf = classifier[1].fit(X_train, y_train)
+            compare_model_dict[classifier[0]] = utils.report(coupon_clf, X_test, y_test)
+            utils.build_plot(coupon_clf, X_test, y_test, classifier[0])
 
-        coupon_clf = classifier[1].fit(X_train, y_train)
+        if classifier[0] == 'Knn_model':
+            coupon_clf = classifier[1].fit(X_KNN_train, y_KNN_train)
+            compare_model_dict[classifier[0]] = utils.report(coupon_clf, X_KNN_test, y_KNN_test)
+            utils.build_plot(coupon_clf, X_KNN_test, y_KNN_test, classifier[0])
 
-        compare_model_dict[classifier[0]] = utils.report(coupon_clf, X_test, y_test)
-        utils.build_plot(coupon_clf, X_test, y_test, classifier[0])
+        if (classifier[0] != 'Knn_model') and (classifier[0] != 'CatBoost_model'):
+            coupon_clf = classifier[1].fit(X_other_train, y_other_train)
+            compare_model_dict[classifier[0]] = utils.report(coupon_clf, X_other_test, y_other_test)
+            utils.build_plot(coupon_clf, X_other_test, y_other_test, classifier[0])
 
     compare_model_df = pd.DataFrame.from_dict(compare_model_dict).transpose().sort_values(by='AUC', ascending=False)
     compare_model_df.to_csv('compare_models_df.csv')

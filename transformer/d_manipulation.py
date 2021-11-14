@@ -65,30 +65,51 @@ class ClusterCatAndSetDummies:
 
 
 class TargetEncoder:
-    def __init__(self, columns=None):
-        if columns is None:
+    def __init__(self, columns=None, mode='All'):
+        if mode == 'All':
+            columns = ['passenger', 'temperature', 'time', 'coupon', 'expiration', 'gender',
+                       'age', 'maritalStatus', 'has_children', 'education', 'occupation',
+                       'income', 'Bar', 'CoffeeHouse', 'CarryAway', 'RestaurantLessThan20',
+                       'Restaurant20To50', 'toCoupon_GEQ15min', 'toCoupon_GEQ25min', 'direction_same']
+        if mode == 'combination':
             columns = ['education', 'occupation', 'income', 'coupon']
+        if (mode == 'custom') and (columns is not None):
+            columns = columns
+
         self.columns = columns
+        self.mode = mode
         self.labels_dict = dict.fromkeys(columns, {})
 
     def fit(self, X, y):
         data = pd.concat([X, y], axis=1)
-        for comb in combinations(self.columns, 2):
-            cluster_df = data.groupby([comb[0], comb[1]]).agg({'Y': 'mean'}).unstack()
-            cluster_df.columns = cluster_df.columns.map(lambda par: par[1])
-            self.labels_dict[comb[0] + '@' + comb[1]] = cluster_df
-        for column in self.columns:
-            column_df = data.groupby(column).agg({'Y': 'mean'})
-            self.labels_dict[column] = column_df
+        if (self.mode == 'All') or (self.mode == 'custom'):
+            # data['temperature'] = data['temperature'].astype('str')
+            for column in self.columns:
+                column_df = data.groupby(column).agg({'Y': 'mean'})
+                self.labels_dict[column] = column_df
+
+        if self.mode == 'combination':
+            for comb in combinations(self.columns, 2):
+                cluster_df = data.groupby([comb[0], comb[1]]).agg({'Y': 'mean'}).unstack()
+                cluster_df.columns = cluster_df.columns.map(lambda par: par[1])
+                self.labels_dict[comb[0] + '@' + comb[1]] = cluster_df
+            for column in self.columns:
+                column_df = data.groupby(column).agg({'Y': 'mean'})
+                self.labels_dict[column] = column_df
         return self
 
     def transform(self, X):
-        for comb in combinations(self.columns, 2):
-            X[comb[0] + '@' + comb[1]] = X[comb[0]] + '@' + X[comb[1]]
-            X[comb[0] + '@' + comb[1]] = X[comb[0] + '@' + comb[1]].map(
-                lambda parm: self.labels_dict[comb[0] + '@' + comb[1]].loc[parm.split('@')[0], parm.split('@')[1]])
-        for column in self.columns:
-            X[column] = X[column].map(lambda parm: self.labels_dict[column].loc[parm, 'Y'])
+        if self.mode == 'All' or self.mode == 'custom':
+            for column in self.columns:
+                X[column] = X[column].map(lambda parm: self.labels_dict[column].loc[parm, 'Y'])
+
+        if self.mode == 'combination':
+            for comb in combinations(self.columns, 2):
+                X[comb[0] + '@' + comb[1]] = X[comb[0]] + '@' + X[comb[1]]
+                X[comb[0] + '@' + comb[1]] = X[comb[0] + '@' + comb[1]].map(
+                    lambda parm: self.labels_dict[comb[0] + '@' + comb[1]].loc[parm.split('@')[0], parm.split('@')[1]])
+            for column in self.columns:
+                X[column] = X[column].map(lambda parm: self.labels_dict[column].loc[parm, 'Y'])
         return X
 
 
@@ -163,4 +184,3 @@ class ModifyToBinary:
             X = pd.get_dummies(X, columns=self.columns, drop_first=True)
         # print(X.info())
         return X
-

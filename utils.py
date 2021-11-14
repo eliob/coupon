@@ -5,7 +5,7 @@ from sklearn.metrics import roc_curve, roc_auc_score
 from sklearn.model_selection import train_test_split
 from sklearn import metrics
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
-import pandas_profiling
+# import pandas_profiling
 import matplotlib.pyplot as plt
 
 
@@ -29,6 +29,7 @@ def get_df_data():
     df.drop(labels=['destination', 'direction_opp', 'weather'], inplace=True, axis=1)
 
     df.replace({"coupon": {'Restaurant(<20)': 'Restaurant(-20)'}}, inplace=True)
+    df.rename(columns={'passanger': 'passenger'}, inplace=True)
 
     # drop duplicates
     df.drop_duplicates(inplace=True, ignore_index=True)
@@ -76,13 +77,14 @@ def calc_evaluation_val(eval_metric, y_test, y_predicted):
 
 
 def my_pipeline(X, y, steps, mode='transform'):
+    _X = X.copy()
     for step in steps:
         transformer = step[1]
         if mode == 'fit_transform':
-            X = transformer.fit(X, y).transform(X)
+            _X = transformer.fit(_X, y).transform(_X)
         else:
-            X = transformer.transform(X)
-    return X
+            _X = transformer.transform(_X)
+    return _X
 
 
 def build_plot(coupon_clf, X_test, y_test, name):
